@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>ВЕКТОР — симулятор</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      color: #e6e6e6;
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      color: #00ff88;
+      text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+      margin-bottom: 20px;
+      font-size: 2.2em;
+    }
+
+    #game {
+      margin: 20px auto;
+      border: 3px solid #00ff88;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+      background: #0a0a1a;
+      display: inline-block;
+    }
+
+    #game-canvas {
+      display: block;
+      background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 100%);
+      border-radius: 7px;
+    }
+
+    #controls {
+      margin: 20px auto;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      max-width: 600px;
+      backdrop-filter: blur(10px);
+    }
+
+    #controls label {
+      display: inline-block;
+      margin: 0 15px;
+      font-weight: bold;
+      color: #00ff88;
+    }
+
+    #controls input {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid #00ff88;
+      border-radius: 5px;
+      color: white;
+      padding: 5px 10px;
+      margin-left: 5px;
+      width: 60px;
+      text-align: center;
+    }
+
+    button {
+      background: linear-gradient(45deg, #00ff88, #00cc6a);
+      border: none;
+      border-radius: 5px;
+      color: #1a1a2e;
+      padding: 10px 20px;
+      margin: 5px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    #info {
+      margin: 15px auto;
+      padding: 15px;
+      background: rgba(0, 255, 136, 0.1);
+      border: 1px solid #00ff88;
+      border-radius: 8px;
+      max-width: 600px;
+      text-align: left;
+      font-family: 'Courier New', monospace;
+      line-height: 1.4;
+    }
+
+    #level-info {
+      margin: 15px auto;
+      padding: 10px;
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #00ff88;
+      max-width: 600px;
+    }
+
+    #next-level {
+      background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+      box-shadow: 0 0 10px rgba(255, 107, 107, 0.3);
+      margin-top: 10px;
+    }
+
+    #next-level:hover {
+      box-shadow: 0 0 15px rgba(255, 107, 107, 0.5);
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      h1 {
+        font-size: 1.8em;
+      }
+      
+      #game-canvas {
+        width: 95%;
+        height: auto;
+      }
+      
+      #controls {
+        padding: 10px;
+      }
+      
+      #controls label {
+        display: block;
+        margin: 10px 0;
+      }
+      
+      button {
+        display: block;
+        width: 200px;
+        margin: 10px auto;
+      }
+    }
+
+    /* Анимации */
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .level-complete {
+      animation: pulse 0.5s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <h1>ВЕКТОР — Рассчитай силу. Победи хаос.</h1>
+
+  <div id="game">
+    <canvas id="game-canvas" width="800" height="400"></canvas>
+  </div>
+
+  <div id="controls">
+    <label>Угол (°): <input type="number" id="angle" min="0" max="90" value="45" /></label>
+    <label>Сила (1-100): <input type="number" id="power" min="1" max="100" value="50" /></label>
+    <button id="shoot">Запустить снаряд</button>
+  </div>
+
+  <div id="info"></div>
+  <div id="level-info"></div>
+  <button id="next-level" style="display:none">Следующий уровень</button>
+
+  <script>
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+
+    const gravity = 9.8;
+    let level = 0;
+
+    const levels = [
+      {
+        targets: [{ x: 700, y: 350, width: 40, height: 40, health: 50 }],
+        description: 'Уровень 1: Сбей генератор хаоса (40 хп)'
+      },
+      {
+        targets: [
+          { x: 650, y: 350, width: 40, height: 40, health: 50 },
+          { x: 710, y: 300, width: 60, height: 60, health: 80 }
+        ],
+        description: 'Уровень 2: Цепная реакция двух генераторов'
+      },
+      {
+        targets: [
+          { x: 600, y: 360, width: 30, height: 30, health: 30 },
+          { x: 650, y: 330, width: 40, height: 40, health: 50 },
+          { x: 710, y: 300, width: 50, height: 50, health: 70 }
+        ],
+        description: 'Уровень 3: Комплексная конструкция хаоса'
+      }
+    ];
+
+    let projectile = null;
+    let shooting = false;
+
+    function drawLevel() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Нарисовать землю
+      ctx.fillStyle = '#654321';
+      ctx.fillRect(0, 380, canvas.width, 20);
+
+      // Нарисовать цели
+      const targets = levels[level].targets;
+      targets.forEach(t => {
+        if (t.health > 0) {
+          ctx.fillStyle = `rgba(255, 0, 0, ${0.5 + t.health / 200})`;
+          ctx.fillRect(t.x, t.y, t.width, t.height);
+          
+          // Отобразить здоровье
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '12px Arial';
+          ctx.fillText(`${t.health}`, t.x + t.width/2 - 10, t.y + t.height/2 + 4);
+        }
+      });
+
+      // Нарисовать снаряд
+      if (projectile) {
+        ctx.beginPath();
+        ctx.arc(projectile.x, projectile.y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = '#00aaff';
+        ctx.fill();
+      }
+
+      // Нарисовать пушку
+      ctx.fillStyle = '#888';
+      ctx.fillRect(30, 370, 40, 10);
+    }
+
+    function launchProjectile(angleDeg, power) {
+      if (shooting) return;
+      shooting = true;
+
+      const angle = angleDeg * Math.PI / 180;
+      const v0 = power / 2;
+
+      projectile = { 
+        x: 50, 
+        y: 370, 
+        vx: v0 * Math.cos(angle), 
+        vy: -v0 * Math.sin(angle) 
+      };
+
+      let t = 0;
+      const dt = 0.05;
+
+      function step() {
+        t += dt;
+        projectile.x = 50 + projectile.vx * t * 20;
+        projectile.y = 370 + projectile.vy * t * 20 + 0.5 * gravity * (t * t) * 20;
+
+        // Проверка столкновений с землёй
+        if (projectile.y >= 370) {
+          projectile.y = 370;
+          shooting = false;
+          drawLevel();
+          drawInfo(angleDeg, power, v0, t);
+          checkLevelComplete();
+          return;
+        }
+
+        // Проверка попадания по целям
+        const targets = levels[level].targets;
+        let hit = false;
+        for (let i = 0; i < targets.length; i++) {
+          const target = targets[i];
+          if (target.health > 0 && 
+              projectile.x > target.x && projectile.x < target.x + target.width &&
+              projectile.y > target.y && projectile.y < target.y + target.height) {
+            target.health -= 30;
+            hit = true;
+          }
+        }
+
+        if (hit) {
+          shooting = false;
+          projectile = null;
+          drawLevel();
+          drawInfo(angleDeg, power, v0, t);
+          checkLevelComplete();
+          return;
+        }
+
+        drawLevel();
+        drawInfo(angleDeg, power, v0, t);
+
+        // Конец полёта
+        if (projectile.y >= 370 || projectile.x > canvas.width) {
+          shooting = false;
+          projectile = null;
+          checkLevelComplete();
+          return;
+        }
+
+        requestAnimationFrame(step);
+      }
+      step();
+    }
+
+    function drawInfo(angle, power, v0, t) {
+      const infoDiv = document.getElementById('info');
+      const angleRad = angle * Math.PI / 180;
+      const timeOfFlight = (2 * v0 * Math.sin(angleRad)) / gravity;
+      const maxHeight = (v0 * v0 * Math.pow(Math.sin(angleRad), 2)) / (2 * gravity);
+      const distance = (v0 * v0 * Math.sin(2 * angleRad)) / gravity;
+
+      infoDiv.innerHTML =
+        `Начальная скорость: V₀ = ${v0.toFixed(2)} м/с<br>` +
+        `Угол броска: θ = ${angle}°<br>` +
+        `Время полёта: t ≈ ${timeOfFlight.toFixed(2)} с<br>` +
+        `Максимальная высота: Hmax ≈ ${maxHeight.toFixed(2)} м<br>` +
+        `Дальность полёта: R ≈ ${distance.toFixed(2)} м<br>` +
+        `Положение снаряда: x = ${projectile ? projectile.x.toFixed(0) : 0}, y = ${projectile ? projectile.y.toFixed(0) : 0}`;
+    }
+
+    function checkLevelComplete() {
+      const targets = levels[level].targets;
+      const allDestroyed = targets.every(t => t.health <= 0);
+      const levelInfo = document.getElementById('level-info');
+      const nextBtn = document.getElementById('next-level');
+
+      if (allDestroyed) {
+        levelInfo.innerHTML = '🎉 Уровень пройден! Поздравляем!';
+        levelInfo.classList.add('level-complete');
+        nextBtn.style.display = 'inline-block';
+      } else {
+        const remainingHealth = targets.reduce((sum, t) => sum + Math.max(0, t.health), 0);
+        levelInfo.innerHTML = `Цели остались. Оставшееся здоровье: ${remainingHealth}`;
+        levelInfo.classList.remove('level-complete');
+      }
+    }
+
+    function nextLevel() {
+      level++;
+      if (level >= levels.length) {
+        alert('🎊 Поздравляем! Вы прошли все доступные уровни!');
+        level = 0;
+      }
+      loadLevel();
+    }
+
+    function loadLevel() {
+      document.getElementById('angle').value = 45;
+      document.getElementById('power').value = 50;
+      document.getElementById('info').innerHTML = 'Установите угол и силу, затем запустите снаряд';
+      document.getElementById('level-info').innerHTML = levels[level].description;
+      document.getElementById('next-level').style.display = 'none';
+      document.getElementById('level-info').classList.remove('level-complete');
+      drawLevel();
+    }
+
+    document.getElementById('shoot').addEventListener('click', () => {
+      const angle = +document.getElementById('angle').value;
+      const power = +document.getElementById('power').value;
+      if (angle < 0 || angle > 90 || power < 1 || power > 100) {
+        alert('Введите корректные значения угла (0-90°) и силы (1-100)!');
+        return;
+      }
+      launchProjectile(angle, power);
+    });
+
+    document.getElementById('next-level').addEventListener('click', nextLevel);
+
+    // Загрузка игры
+    loadLevel();
+  </script>
+</body>
+</html>
