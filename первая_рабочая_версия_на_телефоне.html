@@ -2,118 +2,338 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>ВЕКТОР — симулятор</title>
+  <title>ВЕКТОР — симулятор баллистики</title>
   <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #3b82f6;
+      --accent: #60a5fa;
+      --bg: #0f172a;
+      --bg-light: #1e293b;
+      --surface: #334155;
+      --text: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       padding: 20px;
-      background: linear-gradient(135deg, #1a1a2e, #16213e);
-      color: #e6e6e6;
-      font-family: 'Arial', sans-serif;
-      text-align: center;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       min-height: 100vh;
+      background-image: 
+        radial-gradient(circle at 15% 50%, rgba(37, 99, 235, 0.1) 0%, transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 25%);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    header {
+      grid-column: 1 / -1;
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--surface);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+      color: white;
     }
 
     h1 {
-      color: #00ff88;
-      text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-      margin-bottom: 20px;
-      font-size: 2.2em;
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--text), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0;
     }
 
-    #game {
-      margin: 20px auto;
-      border: 3px solid #00ff88;
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
-      background: #0a0a1a;
-      display: inline-block;
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      margin-top: 5px;
+    }
+
+    .simulation-panel {
+      background: var(--bg-light);
+      border-radius: 16px;
+      padding: 25px;
+      border: 1px solid var(--surface);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .canvas-container {
+      position: relative;
+      margin-bottom: 20px;
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid var(--surface);
     }
 
     #game-canvas {
       display: block;
+      width: 100%;
       background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 100%);
-      border-radius: 7px;
     }
 
-    #controls {
-      margin: 20px auto;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      max-width: 600px;
-      backdrop-filter: blur(10px);
+    .canvas-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.1;
+      background-image: 
+        linear-gradient(var(--accent) 1px, transparent 1px),
+        linear-gradient(90deg, var(--accent) 1px, transparent 1px);
+      background-size: 40px 40px;
     }
 
-    #controls label {
-      display: inline-block;
-      margin: 0 15px;
-      font-weight: bold;
-      color: #00ff88;
+    .controls-panel {
+      background: var(--bg-light);
+      border-radius: 16px;
+      padding: 25px;
+      border: 1px solid var(--surface);
     }
 
-    #controls input {
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid #00ff88;
-      border-radius: 5px;
-      color: white;
-      padding: 5px 10px;
-      margin-left: 5px;
-      width: 60px;
-      text-align: center;
+    .input-group {
+      margin-bottom: 25px;
     }
 
-    button {
-      background: linear-gradient(45deg, #00ff88, #00cc6a);
-      border: none;
-      border-radius: 5px;
-      color: #1a1a2e;
-      padding: 10px 20px;
-      margin: 5px;
-      font-weight: bold;
+    .input-group label {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .slider-container input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 6px;
+      background: var(--surface);
+      border-radius: 3px;
+      outline: none;
+    }
+
+    .slider-container input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--primary);
+      border-radius: 50%;
       cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+      transition: all 0.2s;
+      border: 3px solid var(--bg-light);
     }
 
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+    .slider-container input[type="range"]::-webkit-slider-thumb:hover {
+      background: var(--secondary);
+      transform: scale(1.1);
     }
 
-    button:active {
-      transform: translateY(0);
-    }
-
-    #info {
-      margin: 15px auto;
-      padding: 15px;
-      background: rgba(0, 255, 136, 0.1);
-      border: 1px solid #00ff88;
+    .value-display {
+      min-width: 60px;
+      padding: 8px 12px;
+      background: var(--surface);
       border-radius: 8px;
-      max-width: 600px;
-      text-align: left;
+      text-align: center;
+      font-weight: 600;
       font-family: 'Courier New', monospace;
-      line-height: 1.4;
+      color: var(--accent);
     }
 
-    #level-info {
-      margin: 15px auto;
-      padding: 10px;
-      font-size: 1.1em;
-      font-weight: bold;
-      color: #00ff88;
-      max-width: 600px;
+    .button-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px;
+      margin-top: 30px;
     }
 
-    #next-level {
-      background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
-      box-shadow: 0 0 10px rgba(255, 107, 107, 0.3);
+    .btn {
+      padding: 14px 20px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--primary-dark);
+      color: white;
+    }
+
+    .info-panel {
+      grid-column: 1 / -1;
+      background: var(--bg-light);
+      border-radius: 16px;
+      padding: 25px;
       margin-top: 10px;
+      border: 1px solid var(--surface);
     }
 
-    #next-level:hover {
-      box-shadow: 0 0 15px rgba(255, 107, 107, 0.5);
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      padding: 20px;
+      border-radius: 12px;
+      border-left: 4px solid var(--primary);
+    }
+
+    .stat-label {
+      display: block;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 5px;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      color: var(--accent);
+    }
+
+    .level-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      background: linear-gradient(90deg, var(--primary-dark), transparent);
+      border-radius: 12px;
+      margin-top: 20px;
+    }
+
+    .level-text {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .level-targets {
+      display: flex;
+      gap: 10px;
+    }
+
+    .target-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    .target-indicator.destroyed {
+      background: var(--surface);
+    }
+
+    .projectile-path {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .success-pulse {
+      animation: pulse 0.5s ease-in-out 3;
+    }
+
+    /* Стили для информации о траектории */
+    .trajectory-info {
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(37, 99, 235, 0.1);
+      border-radius: 8px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .trajectory-info h3 {
+      margin-top: 0;
+      color: var(--accent);
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     /* Адаптивность */
@@ -122,64 +342,113 @@
         padding: 10px;
       }
       
+      .container {
+        gap: 15px;
+      }
+      
+      .simulation-panel,
+      .controls-panel,
+      .info-panel {
+        padding: 20px;
+      }
+      
       h1 {
-        font-size: 1.8em;
+        font-size: 1.8rem;
       }
       
-      #game-canvas {
-        width: 95%;
-        height: auto;
+      .button-group {
+        grid-template-columns: 1fr;
       }
       
-      #controls {
-        padding: 10px;
+      .stats-grid {
+        grid-template-columns: 1fr;
       }
-      
-      #controls label {
-        display: block;
-        margin: 10px 0;
-      }
-      
-      button {
-        display: block;
-        width: 200px;
-        margin: 10px auto;
-      }
-    }
-
-    /* Анимации */
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
-    }
-
-    .level-complete {
-      animation: pulse 0.5s ease-in-out;
     }
   </style>
 </head>
 <body>
-  <h1>ВЕКТОР — Рассчитай силу. Победи хаос.</h1>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <div class="logo-icon">V</div>
+        <h1>ВЕКТОР</h1>
+      </div>
+      <div class="subtitle">Симулятор баллистических расчётов</div>
+    </header>
 
-  <div id="game">
-    <canvas id="game-canvas" width="800" height="400"></canvas>
+    <main class="simulation-panel">
+      <div class="canvas-container">
+        <canvas id="game-canvas" width="800" height="400"></canvas>
+        <div class="canvas-grid"></div>
+      </div>
+      
+      <div class="level-info" id="level-info">
+        <div class="level-text" id="level-text">Уровень 1: Сбей генератор хаоса</div>
+        <div class="level-targets" id="targets-indicator"></div>
+      </div>
+    </main>
+
+    <aside class="controls-panel">
+      <div class="input-group">
+        <label for="angle">Угол запуска (θ)</label>
+        <div class="slider-container">
+          <input type="range" id="angle" min="0" max="90" value="45" step="1">
+          <div class="value-display" id="angle-value">45°</div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="power">Сила запуска (F)</label>
+        <div class="slider-container">
+          <input type="range" id="power" min="1" max="100" value="50" step="1">
+          <div class="value-display" id="power-value">50</div>
+        </div>
+      </div>
+
+      <div class="trajectory-info">
+        <h3>📐 Параметры траектории</h3>
+        <div id="trajectory-data">Установите угол и силу для расчёта</div>
+      </div>
+
+      <div class="button-group">
+        <button id="shoot" class="btn btn-primary">
+          <span>🚀</span> Запустить снаряд
+        </button>
+        <button id="reset" class="btn btn-secondary">
+          <span>↺</span> Сброс
+        </button>
+        <button id="next-level" class="btn btn-primary" style="display:none">
+          <span>⏭️</span> Следующий уровень
+        </button>
+      </div>
+    </aside>
+
+    <section class="info-panel">
+      <h2>📊 Статистика выстрела</h2>
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Начальная скорость</span>
+          <span class="stat-value" id="stat-v0">0 м/с</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Время полёта</span>
+          <span class="stat-value" id="stat-time">0 с</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Макс. высота</span>
+          <span class="stat-value" id="stat-height">0 м</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Дальность</span>
+          <span class="stat-value" id="stat-distance">0 м</span>
+        </div>
+      </div>
+    </section>
   </div>
-
-  <div id="controls">
-    <label>Угол (°): <input type="number" id="angle" min="0" max="90" value="45" /></label>
-    <label>Сила (1-100): <input type="number" id="power" min="1" max="100" value="50" /></label>
-    <button id="shoot">Запустить снаряд</button>
-  </div>
-
-  <div id="info"></div>
-  <div id="level-info"></div>
-  <button id="next-level" style="display:none">Следующий уровень</button>
 
   <script>
     const canvas = document.getElementById('game-canvas');
     const ctx = canvas.getContext('2d');
-
     const gravity = 9.8;
     let level = 0;
 
@@ -207,44 +476,223 @@
 
     let projectile = null;
     let shooting = false;
+    let trajectoryPoints = [];
+
+    // Обновление значений слайдеров
+    document.getElementById('angle').addEventListener('input', function() {
+      document.getElementById('angle-value').textContent = this.value + '°';
+      updateTrajectoryPreview();
+    });
+
+    document.getElementById('power').addEventListener('input', function() {
+      document.getElementById('power-value').textContent = this.value;
+      updateTrajectoryPreview();
+    });
+
+    // Сброс
+    document.getElementById('reset').addEventListener('click', function() {
+      projectile = null;
+      shooting = false;
+      trajectoryPoints = [];
+      drawLevel();
+      updateStats();
+    });
 
     function drawLevel() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Нарисовать землю
-      ctx.fillStyle = '#654321';
+      
+      // Рисуем фон
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, '#0a0a1a');
+      gradient.addColorStop(1, '#1a1a3a');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Рисуем сетку
+      drawGrid();
+      
+      // Рисуем землю
+      ctx.fillStyle = '#374151';
       ctx.fillRect(0, 380, canvas.width, 20);
+      
+      // Рисуем траву
+      ctx.fillStyle = '#16a34a';
+      ctx.fillRect(0, 380, canvas.width, 5);
 
-      // Нарисовать цели
+      // Рисуем цели
       const targets = levels[level].targets;
       targets.forEach(t => {
         if (t.health > 0) {
-          ctx.fillStyle = `rgba(255, 0, 0, ${0.5 + t.health / 200})`;
+          // Тень
+          ctx.shadowColor = 'rgba(239, 68, 68, 0.5)';
+          ctx.shadowBlur = 15;
+          
+          // Тело цели
+          const gradient = ctx.createLinearGradient(t.x, t.y, t.x + t.width, t.y + t.height);
+          gradient.addColorStop(0, '#dc2626');
+          gradient.addColorStop(1, '#b91c1c');
+          
+          ctx.fillStyle = gradient;
           ctx.fillRect(t.x, t.y, t.width, t.height);
           
-          // Отобразить здоровье
+          // Рамка
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(t.x, t.y, t.width, t.height);
+          
+          // Сброс тени
+          ctx.shadowColor = 'transparent';
+          
+          // Здоровье
           ctx.fillStyle = '#ffffff';
-          ctx.font = '12px Arial';
-          ctx.fillText(`${t.health}`, t.x + t.width/2 - 10, t.y + t.height/2 + 4);
+          ctx.font = 'bold 14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${t.health}`, t.x + t.width/2, t.y + t.height/2 + 5);
+        } else {
+          // Разрушенная цель
+          ctx.fillStyle = 'rgba(120, 120, 120, 0.5)';
+          ctx.fillRect(t.x, t.y, t.width, t.height);
+          ctx.strokeStyle = '#666';
+          ctx.strokeRect(t.x, t.y, t.width, t.height);
+          ctx.fillStyle = '#999';
+          ctx.font = 'bold 14px Arial';
+          ctx.fillText('✓', t.x + t.width/2, t.y + t.height/2 + 5);
         }
       });
 
-      // Нарисовать снаряд
-      if (projectile) {
+      // Рисуем пушку
+      ctx.fillStyle = '#6b7280';
+      ctx.fillRect(30, 360, 40, 20);
+      ctx.fillRect(35, 340, 30, 20);
+      
+      // Рисуем ствол
+      const angle = parseInt(document.getElementById('angle').value);
+      const angleRad = angle * Math.PI / 180;
+      ctx.save();
+      ctx.translate(50, 370);
+      ctx.rotate(-angleRad);
+      ctx.fillStyle = '#4b5563';
+      ctx.fillRect(0, -5, 40, 10);
+      ctx.restore();
+
+      // Рисуем траекторию
+      if (trajectoryPoints.length > 1) {
         ctx.beginPath();
-        ctx.arc(projectile.x, projectile.y, 10, 0, Math.PI * 2);
-        ctx.fillStyle = '#00aaff';
-        ctx.fill();
+        ctx.moveTo(trajectoryPoints[0].x, trajectoryPoints[0].y);
+        for (let i = 1; i < trajectoryPoints.length; i++) {
+          ctx.lineTo(trajectoryPoints[i].x, trajectoryPoints[i].y);
+        }
+        ctx.strokeStyle = 'rgba(96, 165, 250, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Точки на траектории
+        trajectoryPoints.forEach((point, i) => {
+          if (i % 10 === 0) {
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#60a5fa';
+            ctx.fill();
+          }
+        });
       }
 
-      // Нарисовать пушку
-      ctx.fillStyle = '#888';
-      ctx.fillRect(30, 370, 40, 10);
+      // Рисуем снаряд
+      if (projectile) {
+        // Свечение
+        const glow = ctx.createRadialGradient(
+          projectile.x, projectile.y, 0,
+          projectile.x, projectile.y, 20
+        );
+        glow.addColorStop(0, 'rgba(96, 165, 250, 0.8)');
+        glow.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = glow;
+        ctx.fillRect(projectile.x - 20, projectile.y - 20, 40, 40);
+        
+        // Снаряд
+        ctx.beginPath();
+        ctx.arc(projectile.x, projectile.y, 8, 0, Math.PI * 2);
+        const projectileGradient = ctx.createRadialGradient(
+          projectile.x - 3, projectile.y - 3, 0,
+          projectile.x, projectile.y, 8
+        );
+        projectileGradient.addColorStop(0, '#60a5fa');
+        projectileGradient.addColorStop(1, '#2563eb');
+        ctx.fillStyle = projectileGradient;
+        ctx.fill();
+        
+        // Обводка
+        ctx.strokeStyle = '#1d4ed8';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    function drawGrid() {
+      ctx.strokeStyle = 'rgba(96, 165, 250, 0.1)';
+      ctx.lineWidth = 1;
+      
+      // Вертикальные линии
+      for (let x = 0; x <= canvas.width; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      
+      // Горизонтальные линии
+      for (let y = 0; y <= canvas.height; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+    }
+
+    function updateTrajectoryPreview() {
+      if (shooting) return;
+      
+      const angle = parseInt(document.getElementById('angle').value);
+      const power = parseInt(document.getElementById('power').value);
+      const angleRad = angle * Math.PI / 180;
+      const v0 = power / 2;
+      
+      trajectoryPoints = [];
+      const dt = 0.1;
+      let t = 0;
+      
+      while (t < 10) {
+        const x = 50 + v0 * Math.cos(angleRad) * t * 20;
+        const y = 370 + (-v0 * Math.sin(angleRad) * t * 20 + 0.5 * gravity * t * t * 20);
+        
+        if (x > canvas.width || y > 380) break;
+        
+        trajectoryPoints.push({ x, y });
+        t += dt;
+      }
+      
+      drawLevel();
+      
+      // Обновляем предпросчет траектории
+      const timeOfFlight = (2 * v0 * Math.sin(angleRad)) / gravity;
+      const maxHeight = (v0 * v0 * Math.pow(Math.sin(angleRad), 2)) / (2 * gravity);
+      const distance = (v0 * v0 * Math.sin(2 * angleRad)) / gravity;
+      
+      document.getElementById('trajectory-data').innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+          <div>Время полёта: <strong>${timeOfFlight.toFixed(2)} с</strong></div>
+          <div>Макс. высота: <strong>${maxHeight.toFixed(2)} м</strong></div>
+          <div>Дальность: <strong>${distance.toFixed(2)} м</strong></div>
+          <div>Начальная скорость: <strong>${v0.toFixed(2)} м/с</strong></div>
+        </div>
+      `;
     }
 
     function launchProjectile(angleDeg, power) {
       if (shooting) return;
       shooting = true;
+      trajectoryPoints = [];
 
       const angle = angleDeg * Math.PI / 180;
       const v0 = power / 2;
@@ -264,12 +712,15 @@
         projectile.x = 50 + projectile.vx * t * 20;
         projectile.y = 370 + projectile.vy * t * 20 + 0.5 * gravity * (t * t) * 20;
 
-        // Проверка столкновений с землёй
+        // Записываем точку траектории
+        trajectoryPoints.push({ x: projectile.x, y: projectile.y });
+
+        // Проверка столкновения с землёй
         if (projectile.y >= 370) {
           projectile.y = 370;
           shooting = false;
           drawLevel();
-          drawInfo(angleDeg, power, v0, t);
+          updateStats(angleDeg, power, v0, t);
           checkLevelComplete();
           return;
         }
@@ -284,6 +735,9 @@
               projectile.y > target.y && projectile.y < target.y + target.height) {
             target.health -= 30;
             hit = true;
+            
+            // Эффект попадания
+            createHitEffect(projectile.x, projectile.y);
           }
         }
 
@@ -291,13 +745,13 @@
           shooting = false;
           projectile = null;
           drawLevel();
-          drawInfo(angleDeg, power, v0, t);
+          updateStats(angleDeg, power, v0, t);
           checkLevelComplete();
           return;
         }
 
         drawLevel();
-        drawInfo(angleDeg, power, v0, t);
+        updateStats(angleDeg, power, v0, t);
 
         // Конец полёта
         if (projectile.y >= 370 || projectile.x > canvas.width) {
@@ -312,43 +766,65 @@
       step();
     }
 
-    function drawInfo(angle, power, v0, t) {
-      const infoDiv = document.getElementById('info');
+    function createHitEffect(x, y) {
+      // Визуальный эффект попадания
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, 30, 0, Math.PI * 2);
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, 30);
+      gradient.addColorStop(0, 'rgba(239, 68, 68, 0.8)');
+      gradient.addColorStop(1, 'transparent');
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function updateStats(angle, power, v0, t) {
       const angleRad = angle * Math.PI / 180;
       const timeOfFlight = (2 * v0 * Math.sin(angleRad)) / gravity;
       const maxHeight = (v0 * v0 * Math.pow(Math.sin(angleRad), 2)) / (2 * gravity);
       const distance = (v0 * v0 * Math.sin(2 * angleRad)) / gravity;
 
-      infoDiv.innerHTML =
-        `Начальная скорость: V₀ = ${v0.toFixed(2)} м/с<br>` +
-        `Угол броска: θ = ${angle}°<br>` +
-        `Время полёта: t ≈ ${timeOfFlight.toFixed(2)} с<br>` +
-        `Максимальная высота: Hmax ≈ ${maxHeight.toFixed(2)} м<br>` +
-        `Дальность полёта: R ≈ ${distance.toFixed(2)} м<br>` +
-        `Положение снаряда: x = ${projectile ? projectile.x.toFixed(0) : 0}, y = ${projectile ? projectile.y.toFixed(0) : 0}`;
+      document.getElementById('stat-v0').textContent = v0.toFixed(2) + ' м/с';
+      document.getElementById('stat-time').textContent = timeOfFlight.toFixed(2) + ' с';
+      document.getElementById('stat-height').textContent = maxHeight.toFixed(2) + ' м';
+      document.getElementById('stat-distance').textContent = distance.toFixed(2) + ' м';
     }
 
     function checkLevelComplete() {
       const targets = levels[level].targets;
       const allDestroyed = targets.every(t => t.health <= 0);
-      const levelInfo = document.getElementById('level-info');
+      const levelText = document.getElementById('level-text');
       const nextBtn = document.getElementById('next-level');
 
       if (allDestroyed) {
-        levelInfo.innerHTML = '🎉 Уровень пройден! Поздравляем!';
-        levelInfo.classList.add('level-complete');
-        nextBtn.style.display = 'inline-block';
+        levelText.innerHTML = `🎉 Уровень ${level + 1} пройден!`;
+        levelText.parentElement.classList.add('success-pulse');
+        nextBtn.style.display = 'flex';
       } else {
-        const remainingHealth = targets.reduce((sum, t) => sum + Math.max(0, t.health), 0);
-        levelInfo.innerHTML = `Цели остались. Оставшееся здоровье: ${remainingHealth}`;
-        levelInfo.classList.remove('level-complete');
+        const remaining = targets.filter(t => t.health > 0).length;
+        levelText.innerHTML = `Уровень ${level + 1}: Осталось целей: ${remaining}`;
+        levelText.parentElement.classList.remove('success-pulse');
       }
+      
+      updateTargetsIndicator();
+    }
+
+    function updateTargetsIndicator() {
+      const indicator = document.getElementById('targets-indicator');
+      const targets = levels[level].targets;
+      
+      indicator.innerHTML = '';
+      targets.forEach(t => {
+        const dot = document.createElement('div');
+        dot.className = `target-indicator ${t.health <= 0 ? 'destroyed' : ''}`;
+        indicator.appendChild(dot);
+      });
     }
 
     function nextLevel() {
       level++;
       if (level >= levels.length) {
-        alert('🎊 Поздравляем! Вы прошли все доступные уровни!');
         level = 0;
       }
       loadLevel();
@@ -356,12 +832,20 @@
 
     function loadLevel() {
       document.getElementById('angle').value = 45;
+      document.getElementById('angle-value').textContent = '45°';
       document.getElementById('power').value = 50;
-      document.getElementById('info').innerHTML = 'Установите угол и силу, затем запустите снаряд';
-      document.getElementById('level-info').innerHTML = levels[level].description;
+      document.getElementById('power-value').textContent = '50';
       document.getElementById('next-level').style.display = 'none';
-      document.getElementById('level-info').classList.remove('level-complete');
-      drawLevel();
+      document.getElementById('level-text').innerHTML = levels[level].description;
+      document.getElementById('level-info').classList.remove('success-pulse');
+      
+      projectile = null;
+      shooting = false;
+      trajectoryPoints = [];
+      
+      updateTrajectoryPreview();
+      updateTargetsIndicator();
+      updateStats();
     }
 
     document.getElementById('shoot').addEventListener('click', () => {
@@ -376,8 +860,9 @@
 
     document.getElementById('next-level').addEventListener('click', nextLevel);
 
-    // Загрузка игры
+    // Инициализация
     loadLevel();
+    updateTrajectoryPreview();
   </script>
 </body>
 </html>
